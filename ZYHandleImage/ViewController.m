@@ -32,16 +32,6 @@
         make.right.bottom.equalTo(@-10);
     }];
 
-    
-//    UIImageView * markImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"base.jpg"]];
-//    [_baseImageView addSubview:markImageView];
-//    _markImageView = markImageView;
-//    
-//    [markImageView mas_makeConstraints:^(MASConstraintMaker *make) {
-//        make.center.equalTo(self.view);
-//        make.size.equalTo(CGSizeMake(50, 50));
-//    }];
-
     UIButton * changeButton = [UIButton buttonWithType:UIButtonTypeCustom];
     [changeButton setTitle:@"JUST DO IT" forState:UIControlStateNormal];
     changeButton.backgroundColor = [UIColor darkGrayColor];
@@ -60,8 +50,9 @@
 #pragma mark -- button pressed
 - (void)changeButtonPressed:(UIButton *)sender
 {
+    weakify(self);
     ZYHandleImageViewController * handleImageVC = [[ZYHandleImageViewController alloc] initWithSourceImage:[UIImage imageNamed:@"base.jpg"] handleImageBlock:^(UIImage *newImage) {
-        _baseImageView.image = newImage;
+        weakSelf.baseImageView.image = newImage;
     }];
     
     [self presentViewController:handleImageVC animated:YES completion:nil];

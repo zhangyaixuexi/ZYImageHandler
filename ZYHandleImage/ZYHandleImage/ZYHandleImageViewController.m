@@ -95,10 +95,12 @@
  */
 - (void)sureButtonPressed:(UIButton *)sender
 {
+    //如果currentView的subviews等于1 说明操作按钮（删除和移动）是隐藏的 大于1时说明未隐藏
     if (_currentView.subviews.count > 1) {
         [self sourceImageViewTapGesture:nil];
     }
     
+    //延迟调用截图，如果不延迟，view界面未刷新，操作按钮还存在
     [self performSelector:@selector(sure) withObject:nil afterDelay:0.001];
 }
 
@@ -149,6 +151,7 @@
         // 设置文字属性 要和label的一致
         NSDictionary *attrs = @{NSFontAttributeName : [UIFont systemFontOfSize:20]};
         
+        //计算文字的宽，但是不能超过最大宽度   设置adjustsFontSizeToFitWidth为yes 自动调节字体大小适应label
         CGSize textSize = [text boundingRectWithSize:CGSizeMake(1000, 30) options:NSStringDrawingUsesLineFragmentOrigin attributes:attrs context:nil].size;
         CGFloat label_W = textSize.width + 20;
         if (label_W > NOW_SCR_W - 100) {
@@ -160,16 +163,22 @@
             make.height.equalTo(@30);
             make.center.equalTo(weakSelf.baseImageView);
         }];
-        [self performSelector:@selector(createTextImageViewWithView:) withObject:label afterDelay:1];
+        [self performSelector:@selector(createTextImageViewWithView:) withObject:label afterDelay:0.01];
     }];
     
 }
 
+
+/**
+ 将label转为图片 方便放大缩小
+
+ @param view 创建的label
+ */
 - (void)createTextImageViewWithView:(UIView *)view
 {
     UIView * textView = [[UIView alloc] init];
-//    textView.backgroundColor = [UIColor yellowColor];
     [_baseImageView addSubview:textView];
+    _currentView = textView;
     
     UIImage * newImage = [view screenshot];
     [view removeFromSuperview];
@@ -193,12 +202,14 @@
     UIPanGestureRecognizer * basePan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(baseImageViewPan:)];
     [newImageView addGestureRecognizer:basePan];
     
-//    [self createOptionButton];
+    [self createOptionButton];
 }
 
 
 /**
  打码
+ 
+ 嵌套处理，外部一个blurryView，包含了打码的view和删除移动按钮
  
  */
 - (void)addBlurryButtonPressed:(UIButton *)sender
@@ -235,6 +246,11 @@
     
 }
 
+
+/**
+ 点空白处收起操作按钮（删除和移动）
+
+ */
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     for (UIView * view in _currentView.subviews) {
@@ -245,6 +261,10 @@
   
 }
 
+/**
+ 打码或添加文字删除
+
+ */
 - (void)deleteButtonPressed:(UIButton *)sender
 {
     [_currentView removeFromSuperview];
@@ -262,7 +282,7 @@
 }
 
 /**
- base单击手势
+ baseImageView单击手势
 
  */
 - (void)baseImageViewTapGesture:(UITapGestureRecognizer *)tapGesture
@@ -280,7 +300,7 @@
 
 
 /**
- base拖动手势
+ baseImageView拖动手势
 
  */
 - (void)baseImageViewPan:(UIPanGestureRecognizer *)gesture
@@ -308,18 +328,11 @@
     return NO;
 }
 
-- (void)pinchGestureDetected:(UIPinchGestureRecognizer *)recognizer
-{
-    UIGestureRecognizerState state = [recognizer state];
-    
-    if (state == UIGestureRecognizerStateBegan || state == UIGestureRecognizerStateChanged)
-    {
-        CGFloat scale = [recognizer scale];
-        [_currentView setTransform:CGAffineTransformScale(_currentView.transform, scale, scale)];
-        [recognizer setScale:1.0];
-    }
-}
 
+/**
+ 拖动手势
+
+ */
 - (void)panGestureDetected:(UIPanGestureRecognizer *)recognizer
 {
     UIGestureRecognizerState state = [recognizer state];
@@ -346,9 +359,12 @@
         }
         
         _currentView.bounds= CGRectMake(0, 0, wChange, hChange);
+        //subviews[0] 打码表示图imageView
         _currentView.subviews[0].frame = CGRectMake(30, 30, CGRectGetMaxX(_currentView.bounds) -60, CGRectGetMaxY(_currentView.bounds) - 60);
         _moveButton.frame = CGRectMake(CGRectGetMaxX(_currentView.bounds) - 30, CGRectGetMaxY(_currentView.bounds) - 30, 30, 30);
  
+        
+        
         // 默认初始角度，触发点不在与视图中心点水平的位置上时需要计算初始角度大小
         CGFloat firstAngle = atan2(- _currentView.bounds.size.height / 2 - _currentView.bounds.origin.y,_currentView.bounds.size.width / 2 - _currentView.bounds.origin.x);
         
@@ -379,6 +395,10 @@
 }  
 
 #pragma mark -- create view
+
+/**
+ 创建顶部确定取消按钮
+ */
 - (void)createTopOptionButton
 {
     UIButton * cancelButton  = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -405,6 +425,10 @@
 
 }
 
+
+/**
+ 创建地步按钮
+ */
 - (void)createBottomButton
 {
     NSArray * bottomTitleArray = [NSArray arrayWithObjects:@"旋转",@"文字",@"打码", nil];
@@ -435,6 +459,13 @@
     }
 }
 
+
+/**
+ 创建操作按钮，删除和移动
+ 
+ 按钮只设置了背景颜色，用时可换成图标
+ 
+ */
 - (void)createOptionButton
 {
     //删除
